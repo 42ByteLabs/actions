@@ -87,7 +87,7 @@ if [ "$is_workspace" != "null" ]; then
     name=$(cat "$CARGO_LOCATION" | tomlq -r '.package.name // .workspace.package.name // empty')
     
     # Check if version is using workspace inheritance
-    version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version.workspace // empty')
+    version_check=$(cat "$CARGO_LOCATION" | tomlq -r 'if (.package.version | type) == "object" then .package.version.workspace // empty else empty end')
     if [ "$version_check" = "true" ]; then
         version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package.version // empty')
     else
@@ -95,7 +95,7 @@ if [ "$is_workspace" != "null" ]; then
     fi
     
     # Check if rust-version is using workspace inheritance
-    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version".workspace // empty')
+    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r 'if (.package."rust-version" | type) == "object" then .package."rust-version".workspace // empty else empty end')
     if [ "$rust_version_check" = "true" ]; then
         rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package."rust-version" // empty')
     else
@@ -109,14 +109,14 @@ else
     name=$(cat "$CARGO_LOCATION" | tomlq -r '.package.name // empty')
     
     # For non-workspace projects, still check if somehow referencing workspace
-    version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version.workspace // empty')
+    version_check=$(cat "$CARGO_LOCATION" | tomlq -r 'if (.package.version | type) == "object" then .package.version.workspace // empty else empty end')
     if [ "$version_check" = "true" ]; then
         version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package.version // empty')
     else
         version=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version // empty')
     fi
     
-    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version".workspace // empty')
+    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r 'if (.package."rust-version" | type) == "object" then .package."rust-version".workspace // empty else empty end')
     if [ "$rust_version_check" = "true" ]; then
         rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package."rust-version" // empty')
     else
@@ -165,3 +165,57 @@ else
 fi
 
 echo "📦 Project information extraction complete"
+
+# Check crates.io version if we have a package name
+if [ -n "$name" ]; then
+    echo ""
+    echo "🔍 Checking crates.io version using cargo search..."
+    crates_latest=$(cargo search "$name" --limit 1 2>/dev/null | grep "^$name = " | sed -E 's/.*= "([^"]+)".*/\1/' || echo "")
+    
+    # Fallback to API if cargo search fails or returns empty
+    if [ -z "$crates_latest" ] || [ "$crates_latest" == "null" ]; then
+        echo "⚠️  Cargo search failed or returned no results, falling back to API..."
+        crates_latest=$(curl -s "https://crates.io/api/v1/crates/$name/versions" 2>/dev/null | jq -r '.versions[0].num' 2>/dev/null || echo "")
+        
+        if [ -z "$crates_latest" ] || [ "$crates_latest" == "null" ]; then
+            echo "[!] Unable to get remote crates version (new crate?)"
+            echo "crate-latest=" >>$GITHUB_OUTPUT
+            echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+        else
+            echo "crate-latest=$crates_latest" >>$GITHUB_OUTPUT
+            echo "🦀 Crates.io latest: $crates_latest"
+            
+            # Compare versions if we have both
+            if [ -n "$version" ]; then
+                if [ "$version" != "$crates_latest" ]; then
+                    echo "crate-outdated=true" >>$GITHUB_OUTPUT
+                    echo "🚀 Crate is outdated: $version -> $crates_latest"
+                else
+                    echo "crate-outdated=false" >>$GITHUB_OUTPUT
+                    echo "✅ Crate is up to date: $version"
+                fi
+            else
+                echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+            fi
+        fi
+    else
+        echo "crate-latest=$crates_latest" >>$GITHUB_OUTPUT
+        echo "🦀 Crates.io latest: $crates_latest"
+        
+        # Compare versions if we have both
+        if [ -n "$version" ]; then
+            if [ "$version" != "$crates_latest" ]; then
+                echo "crate-outdated=true" >>$GITHUB_OUTPUT
+                echo "🚀 Crate is outdated: $version -> $crates_latest"
+            else
+                echo "crate-outdated=false" >>$GITHUB_OUTPUT
+                echo "✅ Crate is up to date: $version"
+            fi
+        else
+            echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+        fi
+    fi
+else
+    echo "crate-latest=" >>$GITHUB_OUTPUT
+    echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+fi

@@ -30,6 +30,12 @@ outputs:
   bins:
     description: "Comma-separated list of binary names"
     value: ${{ steps.project-info.outputs.bins }}
+  crate-latest:
+    description: "Latest version available on crates.io (empty if not found)"
+    value: ${{ steps.project-info.outputs.crate-latest }}
+  crate-outdated:
+    description: "Whether the crate is outdated (true/false/unknown)"
+    value: ${{ steps.project-info.outputs.crate-outdated }}
 
 runs:
   using: "composite"
