@@ -1,12 +1,16 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Installing yq / tomlq"
-pip install --break-system-packages yq
+# Check if tomlq is already installed
+if ! command -v tomlq &>/dev/null; then
+    echo "📦 Installing yq / tomlq"
+    pip install --break-system-packages yq
+else
+    echo "✅ yq / tomlq already installed"
+fi
 
 if [ ! -f $CARGO_LOCATION ]; then
-    echo "❌ $CARGO_LOCATION not found"
-    exit 1
+    CARGO_LOCATION="./Cargo.toml"
 fi
 
 echo "🚀 Checking for examples in $CARGO_LOCATION"
