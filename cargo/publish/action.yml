@@ -56,7 +56,7 @@ runs:
   steps:
     - name: "Load project & check version"
       id: project
-      uses: ./cargo/project
+      uses: ${{ github.action_path }}/../project
       with:
         cargo: ${{ inputs.cargo }}
 
