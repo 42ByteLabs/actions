@@ -35,7 +35,7 @@ inputs:
     required: false
     default: "true"
   security:
-    description: "Run Cargo security tooling"
+    description: "Run Cargo security tooling (cargo-audit and cargo-deny)"
     required: false
     default: "true"
   examples:
@@ -133,6 +133,13 @@ runs:
       with:
         sarif_file: rust-clippy-results.sarif
         wait-for-processing: true
+
+    - name: "Run Security Audit"
+      if: inputs.security == 'true'
+      uses: ./cargo/security
+      with:
+        cargo: ${{ inputs.cargo }}
+        rust-toolchain: ${{ inputs.rust-toolchain }}
 
     - name: "Save Cargo / Rust Cache"
       id: cache-save
