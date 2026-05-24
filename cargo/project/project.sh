@@ -83,17 +83,45 @@ if [ "$is_workspace" != "null" ]; then
     fi
 
     # For workspaces, try to get the workspace package name if it exists
+    # Handle workspace inheritance (e.g., version.workspace = true)
     name=$(cat "$CARGO_LOCATION" | tomlq -r '.package.name // .workspace.package.name // empty')
-    version=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version // .workspace.package.version // empty')
-    rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version" // .workspace.package."rust-version" // empty')
+    
+    # Check if version is using workspace inheritance
+    version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version.workspace // empty')
+    if [ "$version_check" = "true" ]; then
+        version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package.version // empty')
+    else
+        version=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version // .workspace.package.version // empty')
+    fi
+    
+    # Check if rust-version is using workspace inheritance
+    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version".workspace // empty')
+    if [ "$rust_version_check" = "true" ]; then
+        rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package."rust-version" // empty')
+    else
+        rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version" // .workspace.package."rust-version" // empty')
+    fi
 else
     echo "workspace=false" >>$GITHUB_OUTPUT
     echo "workspace-members=" >>$GITHUB_OUTPUT
 
     # Get package name, version, and rust-version
     name=$(cat "$CARGO_LOCATION" | tomlq -r '.package.name // empty')
-    version=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version // empty')
-    rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version" // empty')
+    
+    # For non-workspace projects, still check if somehow referencing workspace
+    version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version.workspace // empty')
+    if [ "$version_check" = "true" ]; then
+        version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package.version // empty')
+    else
+        version=$(cat "$CARGO_LOCATION" | tomlq -r '.package.version // empty')
+    fi
+    
+    rust_version_check=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version".workspace // empty')
+    if [ "$rust_version_check" = "true" ]; then
+        rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.workspace.package."rust-version" // empty')
+    else
+        rust_version=$(cat "$CARGO_LOCATION" | tomlq -r '.package."rust-version" // empty')
+    fi
 fi
 
 # Output name and version
