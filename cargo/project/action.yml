@@ -1,0 +1,47 @@
+name: Cargo - Project Info
+description: "Extract common information about Cargo project (name, workspace members, examples, etc.)"
+author: "42ByteLabs"
+
+inputs:
+  cargo:
+    description: "Path to Cargo.toml"
+    required: false
+    default: "./Cargo.toml"
+
+outputs:
+  name:
+    description: "Project/package name"
+    value: ${{ steps.project-info.outputs.name }}
+  version:
+    description: "Project/package version"
+    value: ${{ steps.project-info.outputs.version }}
+  rust-version:
+    description: "Minimum Rust version (MSRV)"
+    value: ${{ steps.project-info.outputs.rust-version }}
+  workspace:
+    description: "Whether this is a workspace (true/false)"
+    value: ${{ steps.project-info.outputs.workspace }}
+  workspace-members:
+    description: "Comma-separated list of workspace member names (if workspace)"
+    value: ${{ steps.project-info.outputs.workspace-members }}
+  examples:
+    description: "Comma-separated list of example names"
+    value: ${{ steps.project-info.outputs.examples }}
+  bins:
+    description: "Comma-separated list of binary names"
+    value: ${{ steps.project-info.outputs.bins }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Extract Project Info"
+      id: project-info
+      shell: bash
+      env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
+      run: |
+        ${{ github.action_path }}/project.sh
+
+branding:
+  icon: "info"
+  color: "orange"
