@@ -2,7 +2,7 @@
 set -e
 
 echo "🚀 Installing yq / tomlq"
-pip install yq
+pip install --break-system-packages yq
 
 if [ ! -f $CARGO_LOCATION ]; then
     echo "❌ $CARGO_LOCATION not found"
