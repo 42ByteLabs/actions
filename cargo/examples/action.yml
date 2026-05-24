@@ -1,0 +1,23 @@
+name: Cargo - Run Examples
+description: "Run all Cargo examples defined in Cargo.toml"
+author: "42ByteLabs"
+
+inputs:
+  cargo:
+    description: "Cargo file location"
+    required: false
+    default: "./Cargo.toml"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Run examples"
+      shell: bash
+      env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
+      run: |
+        ${{ github.action_path }}/examples.sh
+
+branding:
+  icon: "play"
+  color: "orange"

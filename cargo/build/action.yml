@@ -9,6 +9,10 @@ inputs:
   features:
     description: "Crate Features"
     required: false
+  cargo:
+    description: "Path to Cargo.toml"
+    required: false
+    default: "./Cargo.toml"
   version:
     description: "Rust version to use (stable, beta, nightly)"
     required: false
@@ -70,17 +74,7 @@ runs:
       env:
         CARGO_FEATURES: ${{ inputs.features }}
       run: |
-        set -e
-        if [ -n "$CARGO_FEATURES" ]; then
-            echo "📦 Standard build with features: '${CARGO_FEATURES}'"
-            cargo build --workspace --features "${CARGO_FEATURES}"
-        else
-            echo "📦 Standard build (default)"
-            cargo build --workspace
-        fi
-
-        echo "📦 Disable all features"
-        cargo build --no-default-features
+        ${{ github.action_path }}/build.sh
 
     - name: "Run Tests"
       if: inputs.tests == 'true'
@@ -88,41 +82,25 @@ runs:
       env:
         CARGO_FEATURES: ${{ inputs.features }}
       run: |
-        set -e
-        if [ -n "$CARGO_FEATURES" ]; then
-          cargo test --workspace --features "${CARGO_FEATURES}"
-          cargo test --workspace --examples --features "${CARGO_FEATURES}"
-          cargo test --workspace --bins --features "${CARGO_FEATURES}"
-        else
-          cargo test --workspace
-          cargo test --workspace --examples
-          cargo test --workspace --bins
-        fi
+        ${{ github.action_path }}/test.sh
 
-    - name: "Running Examples"
+    - name: "Run Examples"
       if: inputs.examples == 'true'
       shell: bash
       env:
         CARGO_LOCATION: ${{ inputs.cargo }}
       run: |
-        ${{ github.action_path }}/../scripts/examples.sh
+        ${{ github.action_path }}/../examples/examples.sh
 
     - name: "Running Clippy"
       if: inputs.clippy == 'true' && inputs.version == 'stable'
       shell: bash
       continue-on-error: true
       run: |
-        set -e
-        if ! command -v clippy-sarif &> /dev/null; then
-          cargo install clippy-sarif sarif-fmt
-        fi
-
-        cargo clippy \
-          --all-features --all-targets \
-          --message-format=json | clippy-sarif | tee rust-clippy-results.sarif | sarif-fmt
+        ${{ github.action_path }}/clippy.sh
 
     - name: "Upload Clippy SARIF (stable only)"
-      if: matrix.rust-version == 'stable'
+      if: inputs.clippy == 'true' && inputs.version == 'stable'
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: rust-clippy-results.sarif
