@@ -43,9 +43,32 @@ inputs:
     required: false
     default: "false"
 
+outputs:
+  name:
+    description: "Project/package name"
+    value: ${{ steps.project.outputs.name }}
+  version:
+    description: "Project/package version"
+    value: ${{ steps.project.outputs.version }}
+  rust-version:
+    description: "Minimum Rust version (MSRV)"
+    value: ${{ steps.project.outputs.rust-version }}
+  workspace:
+    description: "Whether this is a workspace (true/false)"
+    value: ${{ steps.project.outputs.workspace }}
+  workspace-members:
+    description: "Comma-separated list of workspace member names"
+    value: ${{ steps.project.outputs.workspace-members }}
+
 runs:
   using: "composite"
   steps:
+    - name: "Load project"
+      id: project
+      uses: ./cargo/project
+      with:
+        cargo: ${{ inputs.cargo }}
+
     - name: "Setup - Rust Toolchain"
       uses: dtolnay/rust-toolchain@stable
       with:
@@ -74,6 +97,8 @@ runs:
       shell: bash
       env:
         CARGO_FEATURES: ${{ inputs.features }}
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
         ${{ github.action_path }}/build.sh
 
@@ -82,11 +107,13 @@ runs:
       shell: bash
       env:
         CARGO_FEATURES: ${{ inputs.features }}
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
         ${{ github.action_path }}/test.sh
 
     - name: "Run Examples"
-      if: inputs.examples == 'true'
+      if: inputs.examples == 'true' && steps.project.outputs.examples != ''
       shell: bash
       env:
         CARGO_LOCATION: ${{ inputs.cargo }}
