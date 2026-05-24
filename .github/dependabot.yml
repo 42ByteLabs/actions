@@ -1,0 +1,35 @@
+version: 2
+
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "UTC"
+    reviewers:
+      - "GeekMasher"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Limit number of open PRs to prevent spam
+    open-pull-requests-limit: 5
+    # Automatically rebase PRs when dependencies change
+    rebase-strategy: "auto"
+    pull-request-branch-name:
+      separator: "-"
+    # Cooldown period - wait 1 day (24 hours) after a dependency release before creating PRs
+    cooldown:
+      default-days: 1
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+        update-types:
+          - "minor"
+          - "patch"
