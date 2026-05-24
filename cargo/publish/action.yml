@@ -1,0 +1,103 @@
+name: Cargo - Publish
+description: "Publish Rust crate to crates.io with automatic version checking and GitHub release creation"
+author: "42ByteLabs"
+
+inputs:
+  crate:
+    description: "Crate name (optional - auto-detected from Cargo.toml)"
+    required: false
+  crates:
+    description: "Name of crates to publish in order (comma-separated)"
+    required: false
+  cargo:
+    description: "Cargo file path"
+    required: false
+    default: "./Cargo.toml"
+  rust-toolchain:
+    description: "Rust toolchain to use"
+    required: false
+    default: "stable"
+  cargo-token:
+    description: "Cargo registry token for crates.io"
+    required: true
+  create-github-release:
+    description: "Create GitHub release after publishing"
+    required: false
+    default: "true"
+
+outputs:
+  name:
+    description: "Project/package name"
+    value: ${{ steps.project.outputs.name }}
+  version:
+    description: "Version that was published"
+    value: ${{ steps.project.outputs.version }}
+  rust-version:
+    description: "Minimum Rust version (MSRV)"
+    value: ${{ steps.project.outputs.rust-version }}
+  workspace:
+    description: "Whether this is a workspace (true/false)"
+    value: ${{ steps.project.outputs.workspace }}
+  workspace-members:
+    description: "Comma-separated list of workspace member names"
+    value: ${{ steps.project.outputs.workspace-members }}
+  crate-latest:
+    description: "Latest version available on crates.io"
+    value: ${{ steps.project.outputs.crate-latest }}
+  crate-outdated:
+    description: "Whether the crate is outdated (true/false/unknown)"
+    value: ${{ steps.project.outputs.crate-outdated }}
+  published:
+    description: "Whether the crate was published (true/false)"
+    value: ${{ steps.project.outputs.crate-outdated }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Load project & check version"
+      id: project
+      uses: ./cargo/project
+      with:
+        cargo: ${{ inputs.cargo }}
+
+    - name: "Setup - Rust Toolchain"
+      if: steps.project.outputs.crate-outdated == 'true'
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-toolchain }}
+        components: clippy
+
+    - name: "Build / Validate"
+      if: steps.project.outputs.crate-outdated == 'true'
+      shell: bash
+      env:
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
+        CARGO_FEATURES: ""
+      run: |
+        ${{ github.action_path }}/../build/build.sh
+        ${{ github.action_path }}/../build/test.sh
+
+    - name: "Publish to crates.io"
+      if: steps.project.outputs.crate-outdated == 'true'
+      shell: bash
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ inputs.cargo-token }}
+        CRATES: ${{ inputs.crates }}
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+      run: |
+        ${{ github.action_path }}/publish-crate.sh
+
+    - name: "Create GitHub Release"
+      if: steps.project.outputs.crate-outdated == 'true' && inputs.create-github-release == 'true'
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ steps.project.outputs.version }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        ${{ github.action_path }}/create-release.sh
+
+branding:
+  icon: "upload-cloud"
+  color: "orange"
