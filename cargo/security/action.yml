@@ -1,0 +1,53 @@
+name: "Cargo - Security"
+description: "Security auditing for Rust/Cargo projects using cargo-audit and cargo-deny"
+author: "42ByteLabs"
+
+inputs:
+  cargo:
+    description: "Path to Cargo.toml"
+    required: false
+    default: "./Cargo.toml"
+  cargo-audit:
+    description: "Run cargo-audit to check for known vulnerabilities"
+    required: false
+    default: "true"
+  cargo-deny:
+    description: "Run cargo-deny to check dependencies, licenses, and security advisories"
+    required: false
+    default: "true"
+  rust-toolchain:
+    description: "Rust toolchain to use (stable, beta, nightly)"
+    required: false
+    default: "stable"
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup - Rust Toolchain"
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-toolchain }}
+
+    - name: "Install cargo-audit"
+      if: inputs.cargo-audit == 'true'
+      shell: bash
+      run: |
+        cargo install cargo-audit --locked
+
+    - name: "Run cargo-audit"
+      if: inputs.cargo-audit == 'true'
+      shell: bash
+      working-directory: ${{ inputs.cargo != './Cargo.toml' && github.workspace || '.' }}
+      run: |
+        echo "Running cargo-audit..."
+        cargo audit --file ${{ inputs.cargo }}
+
+    - name: "Run cargo-deny"
+      if: inputs.cargo-deny == 'true'
+      uses: EmbarkStudios/cargo-deny-action@v2.0.19
+      with:
+        manifest-path: ${{ inputs.cargo }}
+
+branding:
+  icon: "shield"
+  color: "orange"
