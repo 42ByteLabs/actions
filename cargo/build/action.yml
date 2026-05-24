@@ -3,18 +3,19 @@ description: "Build and test Rust/Cargo projects with formatting, linting, and c
 author: "42ByteLabs"
 
 inputs:
-  package:
-    description: "Cargo Package"
+  crate:
+    description: "Crate name"
     required: false
   features:
-    description: "Crate Features"
+    description: "Crate features to enable"
     required: false
+    default: ""
   cargo:
     description: "Path to Cargo.toml"
     required: false
     default: "./Cargo.toml"
-  version:
-    description: "Rust version to use (stable, beta, nightly)"
+  rust-toolchain:
+    description: "Rust toolchain to use (stable, beta, nightly)"
     required: false
     default: "stable"
   cache:
@@ -49,7 +50,7 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         components: clippy,rustfmt
-        toolchain: ${{ inputs.version }}
+        toolchain: ${{ inputs.rust-toolchain }}
 
     - name: "Restore cached Cargo"
       id: cache-restore
@@ -62,7 +63,7 @@ runs:
           ~/.cargo/registry/cache/
           ~/.cargo/git/db/
           target/
-        key: ${{ runner.os }}-${{ inputs.rust-version }}-cargo
+        key: ${{ runner.os }}-${{ inputs.rust-toolchain }}-cargo
 
     - name: "Cargo fmt"
       if: inputs.format == 'true'
@@ -93,14 +94,14 @@ runs:
         ${{ github.action_path }}/../examples/examples.sh
 
     - name: "Running Clippy"
-      if: inputs.clippy == 'true' && inputs.version == 'stable'
+      if: inputs.clippy == 'true' && inputs.rust-toolchain == 'stable'
       shell: bash
       continue-on-error: true
       run: |
         ${{ github.action_path }}/clippy.sh
 
     - name: "Upload Clippy SARIF (stable only)"
-      if: inputs.clippy == 'true' && inputs.version == 'stable'
+      if: inputs.clippy == 'true' && inputs.rust-toolchain == 'stable'
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: rust-clippy-results.sarif
