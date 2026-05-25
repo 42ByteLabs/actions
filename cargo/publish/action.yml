@@ -56,7 +56,7 @@ runs:
   steps:
     - name: "Load project & check version"
       id: project
-      uses: ${{ github.action_path }}/../project
+      uses: 42ByteLabs/actions/cargo/project@${{ github.action_ref }}
       with:
         cargo: ${{ inputs.cargo }}
 

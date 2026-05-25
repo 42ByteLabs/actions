@@ -65,7 +65,7 @@ runs:
   steps:
     - name: "Load project"
       id: project
-      uses: ${{ github.action_path }}/../project
+      uses: 42ByteLabs/actions/cargo/project@${{ github.action_ref }}
       with:
         cargo: ${{ inputs.cargo }}
 
@@ -136,7 +136,7 @@ runs:
 
     - name: "Run Security Audit"
       if: inputs.security == 'true'
-      uses: ${{ github.action_path }}/../security
+      uses: 42ByteLabs/actions/cargo/security@${{ github.action_ref }}
       with:
         cargo: ${{ inputs.cargo }}
         rust-toolchain: ${{ inputs.rust-toolchain }}

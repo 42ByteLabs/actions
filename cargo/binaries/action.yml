@@ -1,0 +1,169 @@
+name: Cargo - Build Binary
+description: "Build Rust binaries for multiple platforms and create platform-specific packages (DMG, DEB, PKG, EXE, AppImage, Flatpak)"
+author: "42ByteLabs"
+
+inputs:
+  crate:
+    description: "Crate name (binary name, optional - auto-detected from Cargo.toml)"
+    required: false
+  cargo:
+    description: "Path to Cargo.toml"
+    required: false
+    default: "./Cargo.toml"
+  version:
+    description: "Version / Release tag to publish binaries to (optional - auto-detected from Cargo.toml)"
+    required: false
+  platform:
+    description: "Platform to build for (macos, linux, windows)"
+    required: true
+  linux-platform:
+    description: "Linux platform variant (debian, arch, musl, flatpak, appimage) - auto-detected if not specified"
+    required: false
+  features:
+    description: "Cargo features to enable"
+    required: false
+    default: ""
+  rust-toolchain:
+    description: "Rust toolchain version"
+    required: false
+    default: "stable"
+  upload-release:
+    description: "Upload binary to GitHub Release"
+    required: false
+    default: "true"
+  create-attestation:
+    description: "Create build attestation"
+    required: false
+    default: "true"
+  create-package:
+    description: "Create platform-specific package (DMG for macOS, DEB for Debian, MSI for Windows, etc.)"
+    required: false
+    default: "false"
+
+outputs:
+  binary-name:
+    description: "Name of the built binary"
+    value: ${{ steps.build.outputs.binary-name }}
+  package-name:
+    description: "Name of the platform-specific package (if created)"
+    value: ${{ steps.build.outputs.package-name }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Load project info"
+      id: project
+      uses: 42ByteLabs/actions/cargo/project@${{ github.action_ref }}
+      with:
+        cargo: ${{ inputs.cargo }}
+
+    - name: "Setup - Rust Toolchain"
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: ${{ inputs.rust-toolchain }}
+
+    - name: "Build macOS Binary"
+      if: inputs.platform == 'macos'
+      id: build-macos
+      shell: bash
+      env:
+        CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        VERSION: ${{ inputs.version || steps.project.outputs.version }}
+        FEATURES: ${{ inputs.features }}
+        CREATE_DMG: ${{ inputs.create-package }}
+      run: |
+        ${{ github.action_path }}/macos.sh
+
+    - name: "Build Linux"
+      if: inputs.platform == 'linux'
+      id: build-linux
+      shell: bash
+      env:
+        CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        VERSION: ${{ inputs.version || steps.project.outputs.version }}
+        FEATURES: ${{ inputs.features }}
+        LINUX_PLATFORM: ${{ inputs.linux-platform }}
+        CREATE_DEB: ${{ inputs.create-package }}
+        CREATE_PKG: ${{ inputs.create-package }}
+        APP_ID: ${{ inputs.app-id }}
+      run: |
+        ${{ github.action_path }}/linux.sh
+
+    - name: "Build Windows Binary"
+      if: inputs.platform == 'windows'
+      id: build-windows
+      shell: pwsh
+      env:
+        CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        VERSION: ${{ inputs.version || steps.project.outputs.version }}
+        FEATURES: ${{ inputs.features }}
+        CREATE_INSTALLER: ${{ inputs.create-package }}
+      run: |
+        & "${{ github.action_path }}/windows.ps1"
+
+    - name: "Set build outputs"
+      id: build
+      shell: bash
+      run: |
+        # Collect outputs from platform-specific builds
+        if [ "${{ inputs.platform }}" = "macos" ]; then
+          echo "binary-name=${{ steps.build-macos.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          if [ -n "${{ steps.build-macos.outputs.dmg-name }}" ]; then
+            echo "package-name=${{ steps.build-macos.outputs.dmg-name }}" >> $GITHUB_OUTPUT
+          fi
+        elif [ "${{ inputs.platform }}" = "linux" ]; then
+          echo "binary-name=${{ steps.build-linux.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          # Check for various package types from linux dispatcher
+          if [ -n "${{ steps.build-linux.outputs.deb-name }}" ]; then
+            echo "package-name=${{ steps.build-linux.outputs.deb-name }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.build-linux.outputs.pkg-name }}" ]; then
+            echo "package-name=${{ steps.build-linux.outputs.pkg-name }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.build-linux.outputs.flatpak-name }}" ]; then
+            echo "package-name=${{ steps.build-linux.outputs.flatpak-name }}" >> $GITHUB_OUTPUT
+          elif [ -n "${{ steps.build-linux.outputs.appimage-name }}" ]; then
+            echo "package-name=${{ steps.build-linux.outputs.appimage-name }}" >> $GITHUB_OUTPUT
+          fi
+        elif [ "${{ inputs.platform }}" = "windows" ]; then
+          echo "binary-name=${{ steps.build-windows.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          if [ -n "${{ steps.build-windows.outputs.msi-name }}" ]; then
+            echo "package-name=${{ steps.build-windows.outputs.msi-name }}" >> $GITHUB_OUTPUT
+          fi
+        fi
+
+    - name: "Upload binary to GitHub Release"
+      if: inputs.upload-release == 'true' && steps.build.outputs.binary-name != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ inputs.version || steps.project.outputs.version }}
+        BINARY_NAME: ${{ steps.build.outputs.binary-name }}
+      run: |
+        echo "[+] Uploading binary to GitHub Release :: $VERSION"
+        gh release upload --clobber "$VERSION" "${BINARY_NAME}"
+
+    - name: "Upload package to GitHub Release"
+      if: inputs.upload-release == 'true' && inputs.create-package == 'true' && steps.build.outputs.package-name != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ inputs.version || steps.project.outputs.version }}
+        PACKAGE_NAME: ${{ steps.build.outputs.package-name }}
+      run: |
+        echo "[+] Uploading package to GitHub Release :: $VERSION"
+        gh release upload --clobber "$VERSION" "${PACKAGE_NAME}"
+
+    - name: "Create Attestations for Binary"
+      if: inputs.create-attestation == 'true' && steps.build.outputs.binary-name != ''
+      uses: actions/attest-build-provenance@v2
+      with:
+        subject-path: ${{ steps.build.outputs.binary-name }}
+
+    - name: "Create Attestations for Package"
+      if: inputs.create-attestation == 'true' && inputs.create-package == 'true' && steps.build.outputs.package-name != ''
+      uses: actions/attest-build-provenance@v2
+      with:
+        subject-path: ${{ steps.build.outputs.package-name }}
+
+branding:
+  icon: "package"
+  color: "orange"
