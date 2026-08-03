@@ -34,6 +34,10 @@ inputs:
     description: "Run Cargo tests on project"
     required: false
     default: "true"
+  docs:
+    description: "Build Cargo documentation"
+    required: false
+    default: "true"
   security:
     description: "Run Cargo security tooling (cargo-audit and cargo-deny)"
     required: false
@@ -111,6 +115,16 @@ runs:
         PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
         ${{ github.action_path }}/test.sh
+
+    - name: "Build Docs"
+      if: inputs.docs == 'true'
+      shell: bash
+      env:
+        CARGO_FEATURES: ${{ inputs.features }}
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
+      run: |
+        ${{ github.action_path }}/docs.sh
 
     - name: "Run Examples"
       if: inputs.examples == 'true' && steps.project.outputs.examples != ''

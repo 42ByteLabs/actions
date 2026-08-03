@@ -22,6 +22,7 @@ Build and test Rust projects with formatting, linting, and security checks.
 | `format` | `true` | Run cargo fmt --check |
 | `clippy` | `true` | Run Clippy (stable only) |
 | `tests` | `true` | Run cargo test |
+| `docs` | `true` | Run cargo doc --no-deps |
 | `security` | `true` | Run cargo-audit and cargo-deny |
 | `examples` | `false` | Run cargo examples |
 
@@ -52,10 +53,11 @@ permissions:
 5. **cargo build** with features
 6. **cargo build --no-default-features** (validates minimal build)
 7. **cargo test** on workspace, examples, and binaries (if enabled)
-8. **Run examples** using cargo/examples (if enabled)
-9. **Clippy** with SARIF output (stable only, if enabled)
-10. **Security audit** using cargo/security (if enabled)
-11. **Save cache** on push to main (if enabled)
+8. **cargo doc --no-deps** with features (if enabled)
+9. **Run examples** using cargo/examples (if enabled)
+10. **Clippy** with SARIF output (stable only, if enabled)
+11. **Security audit** using cargo/security (if enabled)
+12. **Save cache** on push to main (if enabled)
 
 ## Build Scope Logic
 
@@ -76,6 +78,11 @@ Builds with features, then builds with `--no-default-features`.
 
 ### test.sh
 Runs tests on workspace, examples, and binaries.
+
+**Env vars:** Same as build.sh
+
+### docs.sh
+Builds documentation with `cargo doc --no-deps`.
 
 **Env vars:** Same as build.sh
 
@@ -142,6 +149,7 @@ Installs `clippy-sarif` and `sarif-fmt` if needed.
     format: "true"
     clippy: "true"
     tests: "true"
+    docs: "true"
     security: "true"
     examples: "true"
 ```
@@ -158,6 +166,9 @@ export CARGO_FEATURES="my-feature"
 
 # Test
 ./test.sh
+
+# Docs
+./docs.sh
 
 # Clippy
 ./clippy.sh
