@@ -124,7 +124,7 @@ jobs:
 
 ## Notes
 
-- **Caching**: Build action handles Cargo caching automatically (saves on push to main)
+- **Caching**: Build action handles Cargo caching automatically (saves on push events)
 - **Cache key**: `${{ runner.os }}-${{ inputs.rust-toolchain }}-cargo`
 - **Clippy SARIF**: Only generated on stable Rust, uploads to GitHub Code Scanning
 - **Version checking**: Publish action checks crates.io before publishing (skips if version exists)
