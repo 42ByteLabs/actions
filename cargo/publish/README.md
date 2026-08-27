@@ -58,7 +58,8 @@ secrets:
 3. **Build & validate** using cargo/build scripts (if publishing)
 4. **Publish crate(s)** using publish-crate.sh
    - Single crate: `cargo publish --allow-dirty`
-   - Multiple crates: checks each crate and publishes in order with a 30-second delay between publishes
+   - Multiple crates: checks each crate and publishes only crates whose local version is newer or missing on crates.io
+   - Already-published crates are skipped with a CI warning annotation
 5. **Create GitHub release** (if enabled)
    - Creates git tag `{version}`
    - Fails if the tag already exists locally or remotely
@@ -74,7 +75,8 @@ secrets:
 - `DRY_RUN` - Set to `true` to run `cargo publish --dry-run`
 
 **Behavior:**
-- If `CRATES` set: Checks each crate and publishes only versions newer than crates.io, with a 30-second delay between publishes
+- If `CRATES` set: Checks each crate and publishes only versions newer than crates.io, with a 30-second delay after each published crate
+- Emits `::warning` annotations for crates skipped because crates.io already has the same or newer version
 - Otherwise: Checks and publishes the selected crate with `cargo publish --allow-dirty`
 
 ### create-release.sh
@@ -119,6 +121,7 @@ secrets:
 When using `crates` input:
 - Publishes in specified order
 - 30-second delay between published crates (allows crates.io to update)
+- Skips already-published crates with a CI warning and continues to later crates
 - Dependencies must be published before dependents
 - All crates must be in workspace
 

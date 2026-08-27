@@ -2,16 +2,16 @@
 # Publish crate(s) to crates.io
 set -e
 
-if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
-  echo "Error: CARGO_REGISTRY_TOKEN environment variable not set"
-  exit 1
-fi
-
 # Check if dry run mode is enabled
 if [ "$DRY_RUN" = "true" ]; then
   echo "🧪 DRY RUN MODE - No actual publishing will occur"
   DRY_RUN_FLAG=(--dry-run)
 else
+  if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+    echo "Error: CARGO_REGISTRY_TOKEN environment variable not set"
+    exit 1
+  fi
+
   DRY_RUN_FLAG=()
 fi
 
@@ -21,6 +21,7 @@ if [ -n "${CARGO_LOCATION:-}" ]; then
 fi
 
 PUBLISHED="false"
+LAST_PUBLISHED="false"
 
 version_is_newer() {
   local local_version="$1"
@@ -65,6 +66,10 @@ publish_one() {
   local local_version
   local remote_version
 
+  LAST_PUBLISHED="false"
+  crate="${crate#"${crate%%[![:space:]]*}"}"
+  crate="${crate%"${crate##*[![:space:]]}"}"
+
   local_version=$(local_version_for "$crate")
   if [ -z "$local_version" ] || [ "$local_version" = "null" ]; then
     echo "Error: Could not determine local version for crate '$crate'"
@@ -77,7 +82,7 @@ publish_one() {
 
   remote_version=$(remote_version_for "$crate")
   if ! version_is_newer "$local_version" "$remote_version"; then
-    echo "📦 Crate '$crate' does not need publishing: local=$local_version remote=$remote_version"
+    echo "::warning title=Crate skipped::Crate '$crate' was skipped because local version '$local_version' is not newer than crates.io version '$remote_version'."
     return 0
   fi
 
@@ -94,13 +99,16 @@ publish_one() {
 
   cargo publish "${MANIFEST_ARGS[@]}" -p "$crate" --allow-dirty "${DRY_RUN_FLAG[@]}" || {
     if [ "$(remote_version_for "$crate")" = "$local_version" ]; then
-      echo "📦 Crate '$crate' version '$local_version' is already published, skipping..."
+      echo "::warning title=Crate skipped::Crate '$crate' version '$local_version' is already published on crates.io."
       return 0
     fi
     exit 1
   }
 
-  PUBLISHED="true"
+  LAST_PUBLISHED="true"
+  if [ "$DRY_RUN" != "true" ]; then
+    PUBLISHED="true"
+  fi
 }
 
 # Publish multiple crates in order (workspace members)
@@ -110,7 +118,7 @@ if [ -n "$CRATES" ]; then
     element="${elements[$index]}"
     publish_one "$element"
 
-    if [ "$PUBLISHED" = "true" ] && [ "$index" -lt "$((${#elements[@]} - 1))" ]; then
+    if [ "$LAST_PUBLISHED" = "true" ] && [ "$index" -lt "$((${#elements[@]} - 1))" ]; then
       echo "⏳ Waiting 30 seconds for crates.io propagation..."
       sleep 30
     fi
