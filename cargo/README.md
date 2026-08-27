@@ -7,6 +7,7 @@ GitHub Actions for Rust/Cargo projects.
 | Action | Description | Key Inputs |
 |--------|-------------|------------|
 | [build](./build/) | Build, test, format, lint, security audit | `features`, `rust-toolchain`, `cache`, `clippy`, `tests`, `security` |
+| [benchmark](./benchmark/) | Run Cargo benchmarks | `crate`, `features`, `bench`, `bench-args`, `no-run` |
 | [examples](./examples/) | Run Cargo examples | `cargo` |
 | [publish](./publish/) | Publish to crates.io | `crate`, `cargo-token`, `crates` |
 | [security](./security/) | cargo-audit and cargo-deny checks | `cargo-audit`, `cargo-deny` |
@@ -54,6 +55,15 @@ permissions:
   with:
     cargo-audit: "true"
     cargo-deny: "true"
+```
+
+## Benchmark Action
+
+```yaml
+- uses: 42ByteLabs/actions/cargo/benchmark@<full-commit-sha> # vX.Y.Z
+  with:
+    bench: "parser"
+    bench-args: "--save-baseline main"
 ```
 
 ## Examples Action
