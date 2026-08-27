@@ -21,7 +21,7 @@ Security auditing for Rust projects using cargo-audit and cargo-deny.
 
 1. **Setup Rust toolchain**
 2. **Install cargo-audit** (if enabled)
-3. **Run cargo-audit** - Checks RustSec Advisory Database for known vulnerabilities
+3. **Run cargo-audit** - Checks the Cargo.lock next to the configured Cargo.toml against the RustSec Advisory Database
 4. **Run cargo-deny** - Checks dependencies, licenses, and advisories using [cargo-deny-action](https://github.com/EmbarkStudios/cargo-deny-action) v2.0.19
 
 ## Tools

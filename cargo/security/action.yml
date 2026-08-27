@@ -42,7 +42,12 @@ runs:
         CARGO_LOCATION: ${{ inputs.cargo }}
       run: |
         echo "Running cargo-audit..."
-        cargo audit --file "$CARGO_LOCATION"
+        cargo_lock="$(dirname "$CARGO_LOCATION")/Cargo.lock"
+        if [ ! -f "$cargo_lock" ]; then
+          echo "Cargo.lock not found at $cargo_lock; generating lockfile..."
+          cargo generate-lockfile --manifest-path "$CARGO_LOCATION"
+        fi
+        cargo audit --file "$cargo_lock"
 
     - name: "Run cargo-deny"
       if: inputs.cargo-deny == 'true'
