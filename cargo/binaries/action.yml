@@ -56,7 +56,7 @@ runs:
   steps:
     - name: "Load project info"
       id: project
-      uses: 42ByteLabs/actions/cargo/project@main
+      uses: 42ByteLabs/actions/cargo/project@67202e2bde25751421efc76da3457b067f90143a # internal
       with:
         cargo: ${{ inputs.cargo }}
 
