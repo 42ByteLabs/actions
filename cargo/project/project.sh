@@ -166,6 +166,22 @@ fi
 
 echo "📦 Project information extraction complete"
 
+version_is_newer() {
+    local local_version="$1"
+    local remote_version="$2"
+
+    if [ -z "$remote_version" ] || [ "$remote_version" = "null" ]; then
+        return 0
+    fi
+
+    if [ "$local_version" = "$remote_version" ]; then
+        return 1
+    fi
+
+    newest=$(printf '%s\n%s\n' "$remote_version" "$local_version" | sort -V | tail -n 1)
+    [ "$newest" = "$local_version" ]
+}
+
 # Check crates.io version if we have a package name
 if [ -n "$name" ]; then
     echo ""
@@ -179,43 +195,43 @@ if [ -n "$name" ]; then
         
         if [ -z "$crates_latest" ] || [ "$crates_latest" == "null" ]; then
             echo "[!] Unable to get remote crates version (new crate?)"
-            echo "crate-latest=" >>$GITHUB_OUTPUT
-            echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+            echo "crate-latest=" >>"$GITHUB_OUTPUT"
+            echo "crate-outdated=true" >>"$GITHUB_OUTPUT"
         else
-            echo "crate-latest=$crates_latest" >>$GITHUB_OUTPUT
+            echo "crate-latest=$crates_latest" >>"$GITHUB_OUTPUT"
             echo "🦀 Crates.io latest: $crates_latest"
             
             # Compare versions if we have both
             if [ -n "$version" ]; then
-                if [ "$version" != "$crates_latest" ]; then
-                    echo "crate-outdated=true" >>$GITHUB_OUTPUT
-                    echo "🚀 Crate is outdated: $version -> $crates_latest"
+                if version_is_newer "$version" "$crates_latest"; then
+                    echo "crate-outdated=true" >>"$GITHUB_OUTPUT"
+                    echo "🚀 Local crate is newer: $crates_latest -> $version"
                 else
-                    echo "crate-outdated=false" >>$GITHUB_OUTPUT
-                    echo "✅ Crate is up to date: $version"
+                    echo "crate-outdated=false" >>"$GITHUB_OUTPUT"
+                    echo "✅ Crate does not need publishing: local=$version remote=$crates_latest"
                 fi
             else
-                echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+                echo "crate-outdated=unknown" >>"$GITHUB_OUTPUT"
             fi
         fi
     else
-        echo "crate-latest=$crates_latest" >>$GITHUB_OUTPUT
+        echo "crate-latest=$crates_latest" >>"$GITHUB_OUTPUT"
         echo "🦀 Crates.io latest: $crates_latest"
         
         # Compare versions if we have both
         if [ -n "$version" ]; then
-            if [ "$version" != "$crates_latest" ]; then
-                echo "crate-outdated=true" >>$GITHUB_OUTPUT
-                echo "🚀 Crate is outdated: $version -> $crates_latest"
+            if version_is_newer "$version" "$crates_latest"; then
+                echo "crate-outdated=true" >>"$GITHUB_OUTPUT"
+                echo "🚀 Local crate is newer: $crates_latest -> $version"
             else
-                echo "crate-outdated=false" >>$GITHUB_OUTPUT
-                echo "✅ Crate is up to date: $version"
+                echo "crate-outdated=false" >>"$GITHUB_OUTPUT"
+                echo "✅ Crate does not need publishing: local=$version remote=$crates_latest"
             fi
         else
-            echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+            echo "crate-outdated=unknown" >>"$GITHUB_OUTPUT"
         fi
     fi
 else
-    echo "crate-latest=" >>$GITHUB_OUTPUT
-    echo "crate-outdated=unknown" >>$GITHUB_OUTPUT
+    echo "crate-latest=" >>"$GITHUB_OUTPUT"
+    echo "crate-outdated=unknown" >>"$GITHUB_OUTPUT"
 fi

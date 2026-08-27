@@ -49,7 +49,7 @@ outputs:
     value: ${{ steps.project.outputs.crate-outdated }}
   published:
     description: "Whether the crate was published (true/false)"
-    value: ${{ steps.project.outputs.crate-outdated }}
+    value: ${{ steps.publish.outputs.published }}
 
 runs:
   using: "composite"
@@ -61,16 +61,17 @@ runs:
         cargo: ${{ inputs.cargo }}
 
     - name: "Setup - Rust Toolchain"
-      if: steps.project.outputs.crate-outdated == 'true'
+      if: inputs.crates != '' || steps.project.outputs.crate-outdated == 'true'
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ inputs.rust-toolchain }}
         components: clippy
 
     - name: "Build / Validate"
-      if: steps.project.outputs.crate-outdated == 'true'
+      if: inputs.crates != '' || steps.project.outputs.crate-outdated == 'true'
       shell: bash
       env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
         PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
         PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
         CARGO_FEATURES: ""
@@ -79,9 +80,11 @@ runs:
         ${{ github.action_path }}/../build/test.sh
 
     - name: "Publish to crates.io"
-      if: steps.project.outputs.crate-outdated == 'true'
+      id: publish
+      if: inputs.crates != '' || steps.project.outputs.crate-outdated == 'true'
       shell: bash
       env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
         CARGO_REGISTRY_TOKEN: ${{ inputs.cargo-token }}
         CRATES: ${{ inputs.crates }}
         PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
@@ -89,12 +92,11 @@ runs:
         ${{ github.action_path }}/publish-crate.sh
 
     - name: "Create GitHub Release"
-      if: steps.project.outputs.crate-outdated == 'true' && inputs.create-github-release == 'true'
+      if: steps.publish.outputs.published == 'true' && inputs.create-github-release == 'true'
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
         VERSION: ${{ steps.project.outputs.version }}
-        REF_NAME: ${{ github.ref_name }}
       run: |
         ${{ github.action_path }}/create-release.sh
 
