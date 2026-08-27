@@ -38,9 +38,11 @@ runs:
       if: inputs.cargo-audit == 'true'
       shell: bash
       working-directory: ${{ inputs.cargo != './Cargo.toml' && github.workspace || '.' }}
+      env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
       run: |
         echo "Running cargo-audit..."
-        cargo audit --file ${{ inputs.cargo }}
+        cargo audit --file "$CARGO_LOCATION"
 
     - name: "Run cargo-deny"
       if: inputs.cargo-deny == 'true'

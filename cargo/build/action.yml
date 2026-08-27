@@ -95,12 +95,15 @@ runs:
     - name: "Cargo fmt"
       if: inputs.format == 'true'
       shell: bash
-      run: cargo fmt --check
+      env:
+        CARGO_LOCATION: ${{ inputs.cargo }}
+      run: cargo fmt --check --manifest-path "$CARGO_LOCATION"
 
     - name: "Cargo Build"
       shell: bash
       env:
         CARGO_FEATURES: ${{ inputs.features }}
+        CARGO_LOCATION: ${{ inputs.cargo }}
         PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
         PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
@@ -111,6 +114,7 @@ runs:
       shell: bash
       env:
         CARGO_FEATURES: ${{ inputs.features }}
+        CARGO_LOCATION: ${{ inputs.cargo }}
         PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
         PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
@@ -121,6 +125,7 @@ runs:
       shell: bash
       env:
         CARGO_FEATURES: ${{ inputs.features }}
+        CARGO_LOCATION: ${{ inputs.cargo }}
         PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
         PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
@@ -138,11 +143,16 @@ runs:
       if: inputs.clippy == 'true' && inputs.rust-toolchain == 'stable'
       shell: bash
       continue-on-error: true
+      env:
+        CARGO_FEATURES: ${{ inputs.features }}
+        CARGO_LOCATION: ${{ inputs.cargo }}
+        PROJECT_CRATE: ${{ inputs.crate || steps.project.outputs.name }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
       run: |
         ${{ github.action_path }}/clippy.sh
 
     - name: "Upload Clippy SARIF (stable only)"
-      if: inputs.clippy == 'true' && inputs.rust-toolchain == 'stable'
+      if: inputs.clippy == 'true' && inputs.rust-toolchain == 'stable' && hashFiles('rust-clippy-results.sarif') != ''
       uses: github/codeql-action/upload-sarif@v4
       with:
         sarif_file: rust-clippy-results.sarif
