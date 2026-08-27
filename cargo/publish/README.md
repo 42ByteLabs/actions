@@ -52,16 +52,17 @@ secrets:
 1. **Load project & check version** using cargo/project
    - Extracts version from Cargo.toml
    - Queries crates.io API
-   - Sets `crate-outdated=true` if local version is newer
-   - Skips if versions match
+   - Sets `crate-outdated=true` if local version is newer or the crate is not published yet
+   - Skips if the registry version is equal or newer
 2. **Setup Rust toolchain** (if publishing)
 3. **Build & validate** using cargo/build scripts (if publishing)
 4. **Publish crate(s)** using publish-crate.sh
-   - Single crate: `cargo publish`
-   - Multiple crates: Publishes in order with 30s delay
+   - Single crate: `cargo publish --allow-dirty`
+   - Multiple crates: checks each crate and publishes only crates whose local version is newer or missing on crates.io
+   - Already-published crates are skipped with a CI warning annotation
 5. **Create GitHub release** (if enabled)
-   - Creates git tag `v{version}`
-   - Pushes tag
+   - Creates git tag `{version}`
+   - Fails if the tag already exists locally or remotely
    - Creates release with auto-generated notes
 
 ## Scripts
@@ -70,19 +71,21 @@ secrets:
 **Env vars:**
 - `CARGO_REGISTRY_TOKEN` - crates.io token
 - `CRATES` - Comma-separated list (optional)
+- `CARGO_LOCATION` - Path to Cargo.toml (optional)
+- `DRY_RUN` - Set to `true` to run `cargo publish --dry-run`
 
 **Behavior:**
-- If `CRATES` set: Publishes each with 30s delay
-- Otherwise: `cargo publish --allow-dirty`
+- If `CRATES` set: Checks each crate and publishes only versions newer than crates.io, with a 30-second delay after each published crate
+- Emits `::warning` annotations for crates skipped because crates.io already has the same or newer version
+- Otherwise: Checks and publishes the selected crate with `cargo publish --allow-dirty`
 
 ### create-release.sh
 **Env vars:**
 - `GH_TOKEN` - GitHub token
 - `VERSION` - Version (e.g., "1.2.3")
-- `REF_NAME` - Git ref name
 
 **Creates:**
-- Tag: `v{VERSION}` (e.g., `v1.2.3`)
+- Tag: `{VERSION}` (e.g., `1.2.3`)
 - GitHub release with auto-generated notes
 
 ## Examples
@@ -117,16 +120,17 @@ secrets:
 
 When using `crates` input:
 - Publishes in specified order
-- 30-second delay between each (allows crates.io to update)
+- 30-second delay between published crates (allows crates.io to update)
+- Skips already-published crates with a CI warning and continues to later crates
 - Dependencies must be published before dependents
 - All crates must be in workspace
 
 ## Version Checking
 
-- Queries crates.io API for latest version
-- Compares with Cargo.toml version
-- Skips publishing if versions match
-- Only builds/validates if version is newer
+- Uses `cargo search`, then the crates.io API fallback, to find the latest version
+- Publishes only when the local version is newer than crates.io or the crate is not published yet
+- Skips publishing if the registry version is equal or newer
+- Workspace `crates` entries are checked independently by `publish-crate.sh`
 
 ## Testing Scripts Locally
 
@@ -141,11 +145,11 @@ export CARGO_LOCATION="./Cargo.toml"
 # Test publish (dry-run)
 export CARGO_REGISTRY_TOKEN="your-token"
 export CRATES="crate1,crate2"
+export DRY_RUN="true"
 ./publish-crate.sh
 
 # Test release
 export GH_TOKEN="your-token"
 export VERSION="1.2.3"
-export REF_NAME="main"
 ./create-release.sh
 ```

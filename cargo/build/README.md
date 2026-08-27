@@ -49,7 +49,7 @@ permissions:
 1. **Load project metadata** using cargo/project action
 2. **Setup Rust toolchain** with clippy and rustfmt components
 3. **Restore cache** (if enabled)
-4. **cargo fmt --check** (if enabled)
+4. **cargo fmt --check** using the `cargo` manifest path (if enabled)
 5. **cargo build** with features
 6. **cargo build --no-default-features** (validates minimal build)
 7. **cargo test** on workspace, examples, and binaries (if enabled)
@@ -57,14 +57,14 @@ permissions:
 9. **Run examples** using cargo/examples (if enabled)
 10. **Clippy** with SARIF output (stable only, if enabled)
 11. **Security audit** using cargo/security (if enabled)
-12. **Save cache** on push to main (if enabled)
+12. **Save cache** on push events (if enabled)
 
 ## Build Scope Logic
 
-Scripts use `PROJECT_WORKSPACE` and `PROJECT_CRATE` env vars:
-- Workspace: `cargo build --workspace`
-- Specific crate: `cargo build -p $PROJECT_CRATE`
-- Single crate: `cargo build`
+Scripts use `CARGO_LOCATION`, `PROJECT_WORKSPACE`, and `PROJECT_CRATE` env vars:
+- Workspace: `cargo build --manifest-path $CARGO_LOCATION --workspace`
+- Specific crate: `cargo build --manifest-path $CARGO_LOCATION -p $PROJECT_CRATE`
+- Single crate: `cargo build --manifest-path $CARGO_LOCATION`
 
 ## Scripts
 
@@ -75,6 +75,7 @@ Builds with features, then builds with `--no-default-features`.
 - `PROJECT_WORKSPACE` - "true" for workspace builds
 - `PROJECT_CRATE` - Crate name for `-p` flag
 - `CARGO_FEATURES` - Features to enable
+- `CARGO_LOCATION` - Path to Cargo.toml
 
 ### test.sh
 Runs tests on workspace, examples, and binaries.
@@ -104,7 +105,7 @@ Installs `clippy-sarif` and `sarif-fmt` if needed.
 
 **Behavior:**
 - Restored on every run
-- Saved only on push to main
+- Saved only on push events
 
 ## Clippy SARIF
 
@@ -112,6 +113,7 @@ Installs `clippy-sarif` and `sarif-fmt` if needed.
 - Uploads to GitHub Code Scanning
 - Requires `security-events: write` permission
 - Output file: `rust-clippy-results.sarif`
+- SARIF upload is skipped if Clippy fails before writing the SARIF file
 
 ## Examples
 
@@ -162,6 +164,7 @@ cd cargo/build
 # Build
 export PROJECT_WORKSPACE="true"
 export CARGO_FEATURES="my-feature"
+export CARGO_LOCATION="../../Cargo.toml"
 ./build.sh
 
 # Test

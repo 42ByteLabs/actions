@@ -1,0 +1,110 @@
+name: "Cargo - Benchmark"
+description: "Run Cargo benchmarks with optional crate, feature, and benchmark selection"
+author: "42ByteLabs"
+
+inputs:
+  crate:
+    description: "Crate name"
+    required: false
+  features:
+    description: "Crate features to enable"
+    required: false
+    default: ""
+  cargo:
+    description: "Path to Cargo.toml"
+    required: false
+    default: "./Cargo.toml"
+  rust-toolchain:
+    description: "Rust toolchain to use (stable, beta, nightly)"
+    required: false
+    default: "stable"
+  cache:
+    description: "Use GitHub Actions Cache"
+    required: false
+    default: "true"
+  bench:
+    description: "Specific benchmark target to run"
+    required: false
+    default: ""
+  bench-args:
+    description: "Arguments passed after -- to the benchmark harness"
+    required: false
+    default: ""
+  no-run:
+    description: "Compile benchmarks without running them"
+    required: false
+    default: "false"
+
+outputs:
+  name:
+    description: "Project/package name"
+    value: ${{ steps.project.outputs.name }}
+  version:
+    description: "Project/package version"
+    value: ${{ steps.project.outputs.version }}
+  rust-version:
+    description: "Minimum Rust version (MSRV)"
+    value: ${{ steps.project.outputs.rust-version }}
+  workspace:
+    description: "Whether this is a workspace (true/false)"
+    value: ${{ steps.project.outputs.workspace }}
+  workspace-members:
+    description: "Comma-separated list of workspace member names"
+    value: ${{ steps.project.outputs.workspace-members }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Load project"
+      id: project
+      uses: 42ByteLabs/actions/cargo/project@81e1d7c5be92eeacba0c52990d92558856781abc # internal
+      with:
+        cargo: ${{ inputs.cargo }}
+
+    - name: "Setup - Rust Toolchain"
+      uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
+      with:
+        toolchain: ${{ inputs.rust-toolchain }}
+
+    - name: "Restore cached Cargo"
+      id: cache-restore
+      if: inputs.cache == 'true'
+      uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-${{ inputs.rust-toolchain }}-cargo
+
+    - name: "Run benchmarks"
+      shell: bash
+      env:
+        BENCH_ARGS: ${{ inputs.bench-args }}
+        BENCH_NAME: ${{ inputs.bench }}
+        CARGO_FEATURES: ${{ inputs.features }}
+        CARGO_LOCATION: ${{ inputs.cargo }}
+        CARGO_NO_RUN: ${{ inputs.no-run }}
+        PROJECT_CRATE: ${{ inputs.crate }}
+        PROJECT_WORKSPACE: ${{ steps.project.outputs.workspace }}
+      run: |
+        ${{ github.action_path }}/benchmark.sh
+
+    - name: "Save Cargo / Rust Cache"
+      id: cache-save
+      if: inputs.cache == 'true' && github.event_name == 'push'
+      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+branding:
+  icon: "activity"
+  color: "orange"

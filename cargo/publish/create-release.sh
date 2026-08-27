@@ -12,18 +12,23 @@ if [ -z "$GH_TOKEN" ]; then
   exit 1
 fi
 
-if [ -z "$REF_NAME" ]; then
-  REF_NAME="main"
-fi
-
 echo "🏷️  Creating release for version: $VERSION"
 
 git config user.name github-actions
 git config user.email github-actions@github.com
 
-git tag "${VERSION}" --force
-git push origin "${REF_NAME}"
-git push origin --tags --force
+if git rev-parse "refs/tags/${VERSION}" >/dev/null 2>&1; then
+  echo "Error: local tag '${VERSION}' already exists"
+  exit 1
+fi
+
+if git ls-remote --exit-code --tags origin "${VERSION}" >/dev/null 2>&1; then
+  echo "Error: remote tag '${VERSION}' already exists"
+  exit 1
+fi
+
+git tag "${VERSION}"
+git push origin "${VERSION}"
 
 gh release create --latest --generate-notes --title "v${VERSION}" "${VERSION}"
 

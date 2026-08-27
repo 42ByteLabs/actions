@@ -25,7 +25,7 @@ Build Rust binaries for multiple platforms and create packages (DMG, DEB, PKG, M
 | `create-package` | ❌ | `false` | Create platform package |
 | `upload-release` | ❌ | `true` | Upload to GitHub Release |
 | `create-attestation` | ❌ | `true` | Create build attestation |
-| `app-id` | ❌ | - | App ID (Flatpak only) |
+| `app-id` | ❌ | `com.42bytelabs.{crate}` | App ID (Flatpak only) |
 
 ## Outputs
 
@@ -58,8 +58,8 @@ Auto-detects from `/etc/os-release` or use `linux-platform`:
 | `debian` | `.deb` | `{crate}-{version}-x86_64.deb` |
 | `arch` | `.pkg.tar.zst` | `{crate}-{version}-x86_64.pkg.tar.zst` |
 | `musl` | Static binary | `{crate}-{version}-x86_64-musl` |
-| `flatpak` | `.flatpak` | `{crate}-{version}-x86_64.flatpak` |
-| `appimage` | `.AppImage` | `{crate}-{version}-x86_64.AppImage` |
+| `flatpak` | `.flatpak` package-only artifact | `{crate}-{version}-x86_64.flatpak` |
+| `appimage` | `.AppImage` package-only artifact | `{crate}-{version}-x86_64.AppImage` |
 
 ### Windows
 - **Target:** x86_64
@@ -108,7 +108,7 @@ steps:
       create-package: true
 ```
 
-### All Linux platforms
+### Linux packages on compatible runners
 ```yaml
 strategy:
   matrix:
@@ -133,7 +133,7 @@ steps:
    - macOS: `macos.sh`
    - Linux: `linux.sh` (dispatches to debian.sh, arch.sh, etc.)
    - Windows: `windows.ps1`
-4. **Create package** (if `create-package: true`)
+4. **Create package** (if `create-package: true`; Flatpak/AppImage always produce package artifacts)
 5. **Upload to GitHub Release** (if `upload-release: true` and version tag exists)
 6. **Create attestations** (if `create-attestation: true`)
 
@@ -156,7 +156,7 @@ Uses cargo/project action to extract from Cargo.toml.
 ### Linux Platform
 Reads `/etc/os-release`:
 - Debian/Ubuntu → `debian.sh`
-- Arch/Manjaro → `arch.sh`
+- Arch/Manjaro/Arch-like (`ID_LIKE=arch`) → `arch.sh`
 - Alpine → `linux-musl.sh`
 - Unknown → `debian.sh` (default)
 
@@ -164,15 +164,15 @@ Reads `/etc/os-release`:
 
 - **macOS DMG:** `create-dmg` (auto-installed)
 - **Debian:** `cargo-deb` (auto-installed)
-- **Arch:** `makepkg` from `base-devel` (auto-installed)
-- **MUSL:** `musl-tools`, `x86_64-unknown-linux-musl` target
-- **Flatpak:** `flatpak-builder`, requires `app-id` input
+- **Arch:** `makepkg` from `base-devel`; use an Arch runner/container for Arch packages
+- **MUSL:** `musl-tools`, `x86_64-unknown-linux-musl` target (target is installed automatically)
+- **Flatpak:** `flatpak-builder`; `app-id` defaults to `com.42bytelabs.{crate}`
 - **AppImage:** `appimagetool` (auto-downloaded)
 - **Windows MSI:** WiX Toolset
 
 ## Notes
 
 - Binary naming: `{crate}-{version}-{arch}.{ext}`
-- Uploads require version tag (e.g., `v1.0.0`)
-- All platform-specific tools are auto-installed
-- Build on Ubuntu works for all Linux platforms (via auto-installation)
+- Uploads target the release named by `version` (for example, `1.0.0`)
+- Some platform-specific tools are auto-installed when the runner supports them
+- Debian, MUSL, Flatpak, and AppImage builds can run on Ubuntu; Arch packages require an Arch-compatible environment

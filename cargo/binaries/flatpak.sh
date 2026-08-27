@@ -91,7 +91,7 @@ flatpak build-bundle repo "${FLATPAK_NAME}" "${APP_ID}"
 
 if [ -f "${FLATPAK_NAME}" ]; then
   echo "✅ Flatpak created: ${FLATPAK_NAME}"
-  echo "flatpak-name=${FLATPAK_NAME}" >>$GITHUB_OUTPUT
+  echo "flatpak-name=${FLATPAK_NAME}" >>"$GITHUB_OUTPUT"
 else
   echo "Error: Flatpak build failed"
   exit 1

@@ -24,7 +24,7 @@ export CARGO_LOCATION="./Cargo.toml"  # Optional, defaults to "./Cargo.toml"
 1. Installs yq/tomlq for TOML parsing
 2. Checks if examples exist in Cargo.toml
 3. Extracts example names and their required features
-4. Runs each example with its required features (if specified)
+4. Runs each example with `--manifest-path $CARGO_LOCATION` and its required features (if specified)
 5. Reports completion status for each example
 
 **Example Output:**

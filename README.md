@@ -7,6 +7,7 @@ Reusable GitHub Actions for 42ByteLab projects.
 | Action | Description |
 |--------|-------------|
 | [cargo build](./cargo/build/) | Build and test with formatting, linting, and security checks |
+| [cargo benchmark](./cargo/benchmark/) | Run Cargo benchmarks |
 | [cargo examples](./cargo/examples/) | Run Cargo examples |
 | [cargo publish](./cargo/publish/) | Publish to crates.io with version checking |
 | [cargo security](./cargo/security/) | Security audit with cargo-audit and cargo-deny |
@@ -43,4 +44,3 @@ jobs:
 ## License
 
 MIT - see [LICENSE](LICENSE) file.
-

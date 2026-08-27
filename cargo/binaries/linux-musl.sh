@@ -33,6 +33,8 @@ fi
 
 # Build binary
 echo "🔨 Building with MUSL target..."
+rustup target add "${TARGET}"
+
 if [ -n "$FEATURES" ]; then
   cargo build --release -p "${CRATE}" --target "${TARGET}" --features "${FEATURES}"
 else
@@ -44,7 +46,7 @@ mv "target/${TARGET}/release/${CRATE}" "${BINARY_NAME}"
 chmod +x "${BINARY_NAME}"
 
 echo "✅ Binary built: ${BINARY_NAME}"
-echo "binary-name=${BINARY_NAME}" >>$GITHUB_OUTPUT
+echo "binary-name=${BINARY_NAME}" >>"$GITHUB_OUTPUT"
 
 # Verify it's statically linked
 echo "📊 Binary info:"

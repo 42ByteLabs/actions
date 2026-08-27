@@ -92,7 +92,7 @@ ARCH=x86_64 ./"$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"
 if [ -f "$APPIMAGE_NAME" ]; then
   chmod +x "$APPIMAGE_NAME"
   echo "✅ AppImage created: ${APPIMAGE_NAME}"
-  echo "appimage-name=${APPIMAGE_NAME}" >>$GITHUB_OUTPUT
+  echo "appimage-name=${APPIMAGE_NAME}" >>"$GITHUB_OUTPUT"
 else
   echo "Error: AppImage build failed"
   exit 1
