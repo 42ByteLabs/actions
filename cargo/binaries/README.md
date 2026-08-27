@@ -156,7 +156,7 @@ Uses cargo/project action to extract from Cargo.toml.
 ### Linux Platform
 Reads `/etc/os-release`:
 - Debian/Ubuntu → `debian.sh`
-- Arch/Manjaro → `arch.sh`
+- Arch/Manjaro/Arch-like (`ID_LIKE=arch`) → `arch.sh`
 - Alpine → `linux-musl.sh`
 - Unknown → `debian.sh` (default)
 

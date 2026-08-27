@@ -20,13 +20,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 detect_distro() {
   if [ -f /etc/os-release ]; then
     . /etc/os-release
-    echo "$ID"
+    echo "${ID:-unknown}:${ID_LIKE:-}"
   elif [ -f /etc/arch-release ]; then
-    echo "arch"
+    echo "arch:"
   elif [ -f /etc/debian_version ]; then
-    echo "debian"
+    echo "debian:"
   else
-    echo "unknown"
+    echo "unknown:"
   fi
 }
 
@@ -55,13 +55,13 @@ else
   
   # Map detected distro to platform script
   case "$DETECTED_DISTRO" in
-    debian|ubuntu|linuxmint|pop|elementary)
+    debian:*|ubuntu:*|linuxmint:*|pop:*|elementary:*|*:debian*)
       PLATFORM="debian"
       ;;
-    arch|manjaro|endeavouros|artix)
+    arch:*|manjaro:*|endeavouros:*|artix:*|*:arch*)
       PLATFORM="arch"
       ;;
-    alpine)
+    alpine:*|*:alpine*)
       PLATFORM="musl"
       ;;
     *)
