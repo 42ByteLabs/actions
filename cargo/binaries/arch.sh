@@ -30,7 +30,7 @@ cp "target/${TARGET}/release/${CRATE}" "${BINARY_NAME}"
 chmod +x "${BINARY_NAME}"
 
 echo "✅ Binary built: ${BINARY_NAME}"
-echo "binary-name=${BINARY_NAME}" >>$GITHUB_OUTPUT
+echo "binary-name=${BINARY_NAME}" >>"$GITHUB_OUTPUT"
 
 # Create PKGBUILD package if requested
 if [ "${CREATE_PKG:-false}" = "true" ]; then
@@ -110,7 +110,7 @@ EOF
       cp "$PKG_FILE" "../${PKG_NAME}"
       cd ..
       echo "✅ Arch package created: ${PKG_NAME}"
-      echo "pkg-name=${PKG_NAME}" >>$GITHUB_OUTPUT
+      echo "pkg-name=${PKG_NAME}" >>"$GITHUB_OUTPUT"
       
       # Show package info
       echo "📊 Package info:"

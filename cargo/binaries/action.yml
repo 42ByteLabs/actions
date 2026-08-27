@@ -39,6 +39,9 @@ inputs:
     description: "Create platform-specific package (DMG for macOS, DEB for Debian, MSI for Windows, etc.)"
     required: false
     default: "false"
+  app-id:
+    description: "Application ID for Flatpak packages"
+    required: false
 
 outputs:
   binary-name:
@@ -61,6 +64,21 @@ runs:
       uses: dtolnay/rust-toolchain@stable
       with:
         toolchain: ${{ inputs.rust-toolchain }}
+
+    - name: "Validate platform"
+      shell: bash
+      env:
+        PLATFORM: ${{ inputs.platform }}
+      run: |
+        case "$PLATFORM" in
+          macos|linux|windows)
+            ;;
+          *)
+            echo "Error: invalid platform '$PLATFORM'"
+            echo "Valid platforms: macos, linux, windows"
+            exit 1
+            ;;
+        esac
 
     - name: "Build macOS Binary"
       if: inputs.platform == 'macos'
@@ -107,26 +125,26 @@ runs:
       run: |
         # Collect outputs from platform-specific builds
         if [ "${{ inputs.platform }}" = "macos" ]; then
-          echo "binary-name=${{ steps.build-macos.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          echo "binary-name=${{ steps.build-macos.outputs.binary-name }}" >> "$GITHUB_OUTPUT"
           if [ -n "${{ steps.build-macos.outputs.dmg-name }}" ]; then
-            echo "package-name=${{ steps.build-macos.outputs.dmg-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-macos.outputs.dmg-name }}" >> "$GITHUB_OUTPUT"
           fi
         elif [ "${{ inputs.platform }}" = "linux" ]; then
-          echo "binary-name=${{ steps.build-linux.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          echo "binary-name=${{ steps.build-linux.outputs.binary-name }}" >> "$GITHUB_OUTPUT"
           # Check for various package types from linux dispatcher
           if [ -n "${{ steps.build-linux.outputs.deb-name }}" ]; then
-            echo "package-name=${{ steps.build-linux.outputs.deb-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-linux.outputs.deb-name }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.build-linux.outputs.pkg-name }}" ]; then
-            echo "package-name=${{ steps.build-linux.outputs.pkg-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-linux.outputs.pkg-name }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.build-linux.outputs.flatpak-name }}" ]; then
-            echo "package-name=${{ steps.build-linux.outputs.flatpak-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-linux.outputs.flatpak-name }}" >> "$GITHUB_OUTPUT"
           elif [ -n "${{ steps.build-linux.outputs.appimage-name }}" ]; then
-            echo "package-name=${{ steps.build-linux.outputs.appimage-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-linux.outputs.appimage-name }}" >> "$GITHUB_OUTPUT"
           fi
         elif [ "${{ inputs.platform }}" = "windows" ]; then
-          echo "binary-name=${{ steps.build-windows.outputs.binary-name }}" >> $GITHUB_OUTPUT
+          echo "binary-name=${{ steps.build-windows.outputs.binary-name }}" >> "$GITHUB_OUTPUT"
           if [ -n "${{ steps.build-windows.outputs.msi-name }}" ]; then
-            echo "package-name=${{ steps.build-windows.outputs.msi-name }}" >> $GITHUB_OUTPUT
+            echo "package-name=${{ steps.build-windows.outputs.msi-name }}" >> "$GITHUB_OUTPUT"
           fi
         fi
 
@@ -142,7 +160,7 @@ runs:
         gh release upload --clobber "$VERSION" "${BINARY_NAME}"
 
     - name: "Upload package to GitHub Release"
-      if: inputs.upload-release == 'true' && inputs.create-package == 'true' && steps.build.outputs.package-name != ''
+      if: inputs.upload-release == 'true' && steps.build.outputs.package-name != ''
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -159,7 +177,7 @@ runs:
         subject-path: ${{ steps.build.outputs.binary-name }}
 
     - name: "Create Attestations for Package"
-      if: inputs.create-attestation == 'true' && inputs.create-package == 'true' && steps.build.outputs.package-name != ''
+      if: inputs.create-attestation == 'true' && steps.build.outputs.package-name != ''
       uses: actions/attest-build-provenance@v2
       with:
         subject-path: ${{ steps.build.outputs.package-name }}

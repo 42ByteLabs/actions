@@ -36,7 +36,7 @@ cp "target/${TARGET}/release/${CRATE}" "${BINARY_NAME}"
 chmod +x "${BINARY_NAME}"
 
 echo "✅ Binary built: ${BINARY_NAME}"
-echo "binary-name=${BINARY_NAME}" >>$GITHUB_OUTPUT
+echo "binary-name=${BINARY_NAME}" >>"$GITHUB_OUTPUT"
 
 # Create .deb package if requested
 if [ "${CREATE_DEB:-false}" = "true" ]; then
@@ -56,7 +56,7 @@ if [ "${CREATE_DEB:-false}" = "true" ]; then
     DEB_NAME="${CRATE}-${VERSION}-${ARCH_NAME}.deb"
     cp "$DEB_FILE" "$DEB_NAME"
     echo "✅ Debian package created: ${DEB_NAME}"
-    echo "deb-name=${DEB_NAME}" >>$GITHUB_OUTPUT
+    echo "deb-name=${DEB_NAME}" >>"$GITHUB_OUTPUT"
   else
     echo "⚠️  Warning: .deb file not found"
   fi

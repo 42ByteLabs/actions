@@ -41,7 +41,7 @@ mv "target/${TARGET}/release/${CRATE}" "${BINARY_NAME}"
 chmod +x "${BINARY_NAME}"
 
 echo "✅ Binary built: ${BINARY_NAME}"
-echo "binary-name=${BINARY_NAME}" >>$GITHUB_OUTPUT
+echo "binary-name=${BINARY_NAME}" >>"$GITHUB_OUTPUT"
 
 # Create DMG if requested
 if [ "${CREATE_DMG:-false}" = "true" ]; then
@@ -83,7 +83,7 @@ EOF
   hdiutil create -volname "${CRATE}" -srcfolder "${APP_DIR}" -ov -format UDZO "${DMG_NAME}"
   
   echo "✅ DMG created: ${DMG_NAME}"
-  echo "dmg-name=${DMG_NAME}" >>$GITHUB_OUTPUT
+  echo "dmg-name=${DMG_NAME}" >>"$GITHUB_OUTPUT"
 fi
 
 echo "🎉 macOS build complete"
