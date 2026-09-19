@@ -11,6 +11,10 @@ inputs:
     description: "Optional Rust targets to install, separated by commas, spaces, or new lines"
     required: false
     default: ""
+  components:
+    description: "Optional Rust components to install, separated by commas, spaces, or new lines"
+    required: false
+    default: ""
   rustup-url:
     description: "URL for the rustup installer script"
     required: false
@@ -33,6 +37,7 @@ runs:
       env:
         RUSTUP_SHA256: ${{ inputs.rustup-sha256 }}
         RUSTUP_URL: ${{ inputs.rustup-url }}
+        RUST_COMPONENTS: ${{ inputs.components }}
         RUST_TOOLCHAIN: ${{ inputs.rust-toolchain }}
         RUST_TARGETS: ${{ inputs.targets }}
       run: |

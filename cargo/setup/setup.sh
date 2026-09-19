@@ -17,6 +17,7 @@ if [ -z "${RUSTUP_URL:-}" ]; then
 fi
 
 RUST_TARGETS="${RUST_TARGETS:-}"
+RUST_COMPONENTS="${RUST_COMPONENTS:-}"
 
 installer="${RUNNER_TEMP:-/tmp}/rustup-init.sh"
 
@@ -46,6 +47,14 @@ if [ -n "${RUST_TARGETS}" ]; then
   normalized_targets="${normalized_targets//,/ }"
   for target in ${normalized_targets}; do
     install_args+=(--target "${target}")
+  done
+fi
+
+if [ -n "${RUST_COMPONENTS}" ]; then
+  normalized_components="${RUST_COMPONENTS//$'\n'/ }"
+  normalized_components="${normalized_components//,/ }"
+  for component in ${normalized_components}; do
+    install_args+=(--component "${component}")
   done
 fi
 
