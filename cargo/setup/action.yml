@@ -1,0 +1,48 @@
+name: "Cargo - Setup"
+description: "Install Rust with rustup using a checksum-verified rustup installer script"
+author: "42ByteLabs"
+
+inputs:
+  rust-toolchain:
+    description: "Rust toolchain to install, such as stable, nightly, 1.80.0, or nightly-2026-09-01"
+    required: false
+    default: "stable"
+  targets:
+    description: "Optional Rust targets to install, separated by commas, spaces, or new lines"
+    required: false
+    default: ""
+  components:
+    description: "Optional Rust components to install, separated by commas, spaces, or new lines"
+    required: false
+    default: ""
+  rustup-url:
+    description: "URL for the rustup installer script"
+    required: false
+    default: "https://sh.rustup.rs"
+  rustup-sha256:
+    description: "Expected SHA-256 hash of the downloaded rustup installer script"
+    required: false
+    default: "7d0ea0f8eba7fa1ebfe998091cd7ec4501e33ec5ca6b884eb4d894d7da5170af"
+
+outputs:
+  rust-toolchain:
+    description: "Installed Rust toolchain"
+    value: ${{ inputs.rust-toolchain }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Setup - Rustup"
+      shell: bash
+      env:
+        RUSTUP_SHA256: ${{ inputs.rustup-sha256 }}
+        RUSTUP_URL: ${{ inputs.rustup-url }}
+        RUST_COMPONENTS: ${{ inputs.components }}
+        RUST_TOOLCHAIN: ${{ inputs.rust-toolchain }}
+        RUST_TARGETS: ${{ inputs.targets }}
+      run: |
+        ${{ github.action_path }}/setup.sh
+
+branding:
+  icon: "download"
+  color: "orange"
